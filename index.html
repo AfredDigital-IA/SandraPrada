@@ -467,7 +467,7 @@
 
   <div class="reveal" id="reveal">
     <div class="prize">
-      <button class="close" id="closePrize" aria-label="Cerrar">×</button>
+      <button type="button" class="close" id="closePrize" aria-label="Cerrar">×</button>
       <div class="mini">Tu bonificación comercial total</div>
       <h2>¡Felicitaciones, <span id="firstName2">Sandri</span>!</h2>
       <div class="amount" id="bonus">$20.442.230</div>
@@ -500,7 +500,10 @@
     document.getElementById("monthsOrg").textContent = person.orgMonths;
     document.getElementById("daysOrg").textContent = person.orgDays;
     document.getElementById("roleMonths").textContent = person.roleMonths;
-    document.getElementById("roleMonthsText").textContent = person.roleMonths + " meses";
+    const roleMonthsText = document.getElementById("roleMonthsText");
+    if (roleMonthsText) {
+      roleMonthsText.textContent = person.roleMonths + " meses";
+    }
     document.getElementById("bonus").textContent = formatCOP(person.bonusCOP);
 
     const reveal = document.getElementById("reveal");
@@ -521,50 +524,45 @@
     bgMusic.volume = 0.42;
 
     function enterExperience() {
-      // 1) La experiencia SIEMPRE empieza inmediatamente.
       startOverlay.classList.add("hide");
       document.body.style.overflowY = "auto";
-
       setTimeout(() => {
         startOverlay.style.display = "none";
       }, 700);
+    }
 
-      // 2) Intentamos reproducir la música SIN bloquear la navegación.
-      // Si el archivo no existe o el navegador la bloquea, la landing sigue funcionando.
+    // El clic del usuario desbloquea la reproducción en móviles.
+    let experienceStarted = false;
+
+    function startOnce() {
+      if (experienceStarted) return;
+      experienceStarted = true;
+
+      // Importante: play() ocurre directamente dentro del gesto del usuario.
       try {
+        bgMusic.currentTime = 0;
         const playPromise = bgMusic.play();
 
-        if (playPromise !== undefined) {
+        if (playPromise && typeof playPromise.then === "function") {
           playPromise
             .then(() => {
               musicControl.style.display = "flex";
               toggleMusic.textContent = "Pausar";
             })
             .catch((err) => {
-              console.log("Audio no disponible o bloqueado:", err);
-              musicControl.style.display = "none";
+              console.log("El navegador no permitió reproducir el audio:", err);
+              musicControl.style.display = "flex";
+              toggleMusic.textContent = "Reproducir música";
             });
-        } else {
-          musicControl.style.display = "flex";
         }
       } catch (err) {
-        console.log("No fue posible iniciar el audio:", err);
-        musicControl.style.display = "none";
+        console.log("Error al iniciar audio:", err);
       }
-    }
 
-    // click + touchend para mayor compatibilidad con navegadores internos móviles.
-    let experienceStarted = false;
-
-    function startOnce(event) {
-      if (experienceStarted) return;
-      experienceStarted = true;
-      if (event) event.preventDefault();
       enterExperience();
     }
 
-    startExperience.addEventListener("click", startOnce, { passive: false });
-    startExperience.addEventListener("touchend", startOnce, { passive: false });
+    startExperience.addEventListener("click", startOnce);
 
     toggleMusic.addEventListener("click", () => {
       if (bgMusic.paused) {
